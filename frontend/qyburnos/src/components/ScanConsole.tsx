@@ -1,0 +1,12 @@
+import { useState } from 'react'
+import type { ScanModule, StartScanInput } from '../types/recon'
+interface ScanConsoleProps { onStart: (input: StartScanInput) => void; disabled: boolean }
+const modules: Array<{ id: ScanModule; label: string; hint: string }> = [{ id: 'subdomains', label: 'Subdomain enum', hint: 'Passive + active discovery' }, { id: 'ports', label: 'Port scan', hint: 'Top 1,000 TCP ports' }, { id: 'technologies', label: 'Tech fingerprint', hint: 'Headers, DOM + assets' }, { id: 'whois', label: 'WHOIS lookup', hint: 'Registration metadata' }]
+
+export function ScanConsole({ onStart, disabled }: ScanConsoleProps) {
+  const [target, setTarget] = useState('acme.test')
+  const [selected, setSelected] = useState<ScanModule[]>(modules.map((module) => module.id))
+  const toggle = (module: ScanModule) => setSelected((current) => current.includes(module) ? current.filter((item) => item !== module) : [...current, module])
+  const submit = () => { if (target.trim() && selected.length > 0) onStart({ target: target.trim(), modules: selected }) }
+  return <section className="scan-console panel"><div className="section-kicker"><span className="pulse-dot" /> Recon control</div><div className="console-heading"><div><h1>Find the signal.</h1><p>Map your attack surface before it maps you.</p></div><span className="shortcut">⌘ K <span>focus target</span></span></div><div className="target-row"><label className="target-input"><span className="input-prefix">↳</span><input value={target} onChange={(event) => setTarget(event.target.value)} placeholder="Target URL, domain, or IP address" aria-label="Scan target" /><span className="input-type">DOMAIN</span></label><button className="start-button" type="button" onClick={submit} disabled={disabled || selected.length === 0}>{disabled ? 'Scanning...' : 'Start scan'} <span>↗</span></button></div><div className="module-row"><span className="module-label">Modules</span>{modules.map((module) => <button type="button" key={module.id} className={`module-chip ${selected.includes(module.id) ? 'selected' : ''}`} onClick={() => toggle(module.id)}><span className="chip-check">{selected.includes(module.id) ? '✓' : '+'}</span>{module.label}<small>{module.hint}</small></button>)}</div></section>
+}
