@@ -1,4 +1,17 @@
-import type { ScanStreamEvent } from '../types/recon'
-interface TerminalWindowProps { events?: ScanStreamEvent[] }
-const defaultEvents: ScanStreamEvent[] = [{ type: 'status', data: 'qyburnos shell connected · session 7f31a', timestamp: '09:42:00' }, { type: 'stdout', data: '→ initializing passive reconnaissance modules', timestamp: '09:42:03' }, { type: 'stdout', data: '→ querying certificate transparency logs...', timestamp: '09:42:08' }, { type: 'stdout', data: '→ found 18 unique subdomains', timestamp: '09:43:12' }]
-export function TerminalWindow({ events = defaultEvents }: TerminalWindowProps) { return <section className="terminal panel"><div className="terminal-header"><div><span className="window-dot red" /><span className="window-dot yellow" /><span className="window-dot green" /></div><span>terminal / scan-7f31a</span><span className="terminal-live"><span className="pulse-dot" /> live stream</span></div><div className="terminal-body">{events.map((event, index) => <div className="terminal-line" key={`${event.timestamp}-${index}`}><span className="terminal-time">{event.timestamp}</span><span className={event.type === 'status' ? 'terminal-status' : ''}>{event.data}</span></div>)}<div className="terminal-line prompt"><span className="terminal-time">now</span><span><b>qyburnos</b> <i>›</i> <span className="cursor" /></span></div></div></section> }
+import { useEffect, useRef } from 'react'
+import { Terminal } from 'xterm'
+import 'xterm/css/xterm.css'
+
+export function TerminalWindow() {
+	const terminalRef = useRef<HTMLDivElement>(null)
+	useEffect(() => {
+		const terminal = new Terminal({ convertEol: true, cursorBlink: true, fontFamily: 'DM Mono, monospace', theme: { background: '#111719', foreground: '#d5dedb', cursor: '#b8e986' } })
+		if (!terminalRef.current) return () => terminal.dispose()
+		terminal.open(terminalRef.current)
+		const removeDataListener = window.qyburnos?.terminal.onData((event) => terminal.write(event.data))
+		terminal.onData((input) => { void window.qyburnos?.terminal.write(input) })
+		void window.qyburnos?.terminal.start()
+		return () => { removeDataListener?.(); void window.qyburnos?.terminal.stop(); terminal.dispose() }
+	}, [])
+	return <section className="terminal panel"><div className="terminal-header"><div><span className="window-dot red" /><span className="window-dot yellow" /><span className="window-dot green" /></div><span>terminal / interactive shell</span><span className="terminal-live"><span className="pulse-dot" /> live stream</span></div><div className="terminal-body xterm-host" ref={terminalRef} /></section>
+}

@@ -1,0 +1,51 @@
+name: Build QyburnOS
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: 'frontend/release/*.exe'
+          - os: macos-latest
+            artifact: 'frontend/release/*.dmg'
+          - os: ubuntu-latest
+            artifact: 'frontend/release/*.AppImage'
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ''
+      WIN_CSC_LINK: ''
+      MAC_CSC_LINK: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - run: npm run lint
+      - run: npm test
+      - run: npm run package -- --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qyburnos-${{ matrix.os }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+          if-no-files-found: error
